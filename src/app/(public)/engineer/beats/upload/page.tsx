@@ -119,8 +119,8 @@ export default function BeatUploadPage() {
 
         {/* Audio file */}
         <BeatFileUploader
-          label="Fichier audio (WAV) *"
-          accept=".wav,.aiff,.flac"
+          label="Fichier audio (WAV, MP3, AIFF, FLAC) *"
+          accept=".wav,.mp3,.aiff,.flac"
           maxSizeMb={200}
           file={audioFile}
           onFileChange={setAudioFile}

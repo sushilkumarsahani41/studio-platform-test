@@ -6,14 +6,14 @@ import { TeamSection } from "@/components/home/team-section";
 import { ArtistCarousel } from "@/components/home/artist-carousel";
 
 const ARTISTS = [
-  { name: "Artist 1", photo: null },
-  { name: "Artist 2", photo: null },
-  { name: "Artist 3", photo: null },
-  { name: "Artist 4", photo: null },
-  { name: "Artist 5", photo: null },
-  { name: "Artist 6", photo: null },
-  { name: "Artist 7", photo: null },
-  { name: "Artist 8", photo: null },
+  { name: "Artist 1", photo: "" },
+  { name: "Artist 2", photo: "" },
+  { name: "Artist 3", photo: "" },
+  { name: "Artist 4", photo: "" },
+  { name: "Artist 5", photo: "" },
+  { name: "Artist 6", photo: "" },
+  { name: "Artist 7", photo: "" },
+  { name: "Artist 8", photo: "" },
 ];
 
 const STUDIOS = [

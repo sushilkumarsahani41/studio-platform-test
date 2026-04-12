@@ -3,17 +3,20 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Music } from "lucide-react";
-import { getPublishedBeats, addBeatToFavorites } from "@/actions/beats";
+import { getPublishedBeats, addBeatToFavorites, getMyFavoriteIds } from "@/actions/beats";
 import { BeatSwipeCard } from "@/components/beats/beat-swipe-card";
 import { BeatsOnboarding } from "@/components/beats/beats-onboarding";
 import { MOCK_BEATS } from "@/lib/mock-beats";
 import { useAudioStore } from "@/stores/audio-store";
 import { toast } from "@/components/ui/toaster";
+import { createClient } from "@/lib/supabase/client";
 import type { Beat } from "@/types";
 
 export default function BeatsPage() {
   const router = useRouter();
   const [beats, setBeats] = useState<Beat[]>([]);
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+  const [isAuthed, setIsAuthed] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [exitDirection, setExitDirection] = useState<"left" | "right" | null>(null);
   const animatingRef = useRef(false);
@@ -32,11 +35,23 @@ export default function BeatsPage() {
     }
 
     async function load() {
-      const result = await getPublishedBeats();
-      if (result.success && result.data.length > 0) {
-        setBeats(result.data);
+      const supabase = createClient();
+      const { data: authData } = await supabase.auth.getUser();
+      const authed = !!authData.user;
+      setIsAuthed(authed);
+
+      const beatsResult = await getPublishedBeats();
+      if (beatsResult.success && beatsResult.data.length > 0) {
+        setBeats(beatsResult.data);
       } else {
         setBeats(MOCK_BEATS);
+      }
+
+      if (authed) {
+        const favsResult = await getMyFavoriteIds();
+        if (favsResult.success && favsResult.data.length > 0) {
+          setFavoriteIds(new Set(favsResult.data));
+        }
       }
       setLoading(false);
     }
@@ -65,19 +80,37 @@ export default function BeatsPage() {
   const animateAndAdvance = useCallback(
     (direction: "left" | "right") => {
       if (animatingRef.current) return;
+
+      // Swipe right requires authentication — redirect instead of consuming the swipe
+      if (direction === "right" && !isAuthed) {
+        toast({
+          title: "Connexion requise",
+          description: "Connecte-toi pour ajouter des beats à tes favoris.",
+          variant: "default",
+        });
+        router.push("/login?redirect=/beats");
+        return;
+      }
+
       hasInteracted.current = true;
       animatingRef.current = true;
       // Stop current audio — autoplay effect will start the next beat
       stop();
       setExitDirection(direction);
 
-      // Add to favorites on swipe right
+      // Add to favorites on swipe right (skip if already favorited)
       if (direction === "right" && beats[currentIndex]) {
-        addBeatToFavorites(beats[currentIndex].id).then((result) => {
-          if (result.success) {
-            toast({ title: "Ajouté aux favoris", variant: "success" });
-          }
-        });
+        const beatId = beats[currentIndex].id;
+        if (!favoriteIds.has(beatId)) {
+          setFavoriteIds((prev) => new Set(prev).add(beatId));
+          addBeatToFavorites(beatId).then((result) => {
+            if (result.success) {
+              toast({ title: "Ajouté aux favoris", variant: "success" });
+            }
+          });
+        } else {
+          toast({ title: "Déjà dans tes favoris", variant: "success" });
+        }
       }
 
       setTimeout(() => {
@@ -86,7 +119,7 @@ export default function BeatsPage() {
         animatingRef.current = false;
       }, 400);
     },
-    [stop, beats, currentIndex],
+    [stop, beats, currentIndex, favoriteIds, isAuthed, router],
   );
 
   const handleSwipeLeft = useCallback(() => {
@@ -213,10 +246,12 @@ export default function BeatsPage() {
           <button
             type="button"
             onClick={handleSwipeRight}
-            className="swipe-btn swipe-btn-like"
-            aria-label="Voir les détails de la prod"
+            className={`swipe-btn swipe-btn-like${
+              beats[currentIndex] && favoriteIds.has(beats[currentIndex].id) ? " is-active" : ""
+            }`}
+            aria-label="Ajouter aux favoris"
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg width="24" height="24" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
             </svg>
           </button>

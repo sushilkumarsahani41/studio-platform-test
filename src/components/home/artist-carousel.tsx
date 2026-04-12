@@ -55,11 +55,17 @@ export function ArtistCarousel({ artists }: { artists: Artist[] }) {
         {artists.map((artist) => (
           <div key={artist.name} className="artist-vignette">
             <div className="artist-avatar">
-              <img
-                className="artist-photo"
-                src={artist.photo}
-                alt={artist.name}
-              />
+              {artist.photo ? (
+                <img
+                  className="artist-photo"
+                  src={artist.photo}
+                  alt={artist.name}
+                />
+              ) : (
+                <span className="artist-photo-placeholder">
+                  {artist.name.charAt(0)}
+                </span>
+              )}
             </div>
             <span className="artist-name">{artist.name}</span>
           </div>

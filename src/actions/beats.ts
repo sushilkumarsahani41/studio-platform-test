@@ -757,6 +757,22 @@ export async function removeBeatFromFavorites(
   return { success: true, data: undefined };
 }
 
+export async function getMyFavoriteIds(): Promise<ActionResponse<string[]>> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: true, data: [] };
+
+  const { data, error } = await supabase
+    .from("beat_favorites")
+    .select("beat_id")
+    .eq("user_id", user.id);
+
+  if (error) return { success: true, data: [] };
+  return { success: true, data: (data ?? []).map((r) => r.beat_id) };
+}
+
 export async function getMyFavorites(): Promise<ActionResponse<Beat[]>> {
   const supabase = await createClient();
 
